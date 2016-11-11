@@ -1,14 +1,14 @@
 {
   "name": "ga-api",
-  "version": "0.0.4",
-  "description": "Google analytics API access via node",
+  "version": "0.0.5",
+  "description": "Google analytics API access via node -- updated to GA API v4",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/jsguy/ga-api.git"
+    "url": "https://github.com/baripembo/ga-api.git"
   },
   "keywords": [
     "GA",
@@ -16,14 +16,9 @@
     "Analytics",
     "API"
   ],
-  "author": "jsguy",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/jsguy/ga-api/issues"
-  },
-  "homepage": "https://github.com/jsguy/ga-api",
   "dependencies": {
-    "googleapis": "^2.0.5",
-    "lodash": "^3.9.3"
+    "googleapis": "^14.1.0",
+    "dotenv": "^2.0.0",
+    "lodash": "^4.16.6"
   }
 }

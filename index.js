@@ -1,7 +1,8 @@
 /*  Google analytics API acees with concurrency limiting and retry + caching built in.  */
-var googleapis  = require('googleapis'),
+require('dotenv').load();
+var googleapis = require('googleapis'),
     crypto = require('crypto'),
-    OAuth2      = googleapis.auth.OAuth2,
+    OAuth2 = googleapis.auth.OAuth2,
     _ = require('lodash'),
     fs = require('fs'),
     compactObject = function(o) {
@@ -26,14 +27,44 @@ var googleapis  = require('googleapis'),
         return cacheDir + shasum.digest('hex');
     },
 
-    //  Execuates a ga query, or returns cache if available
+    //  Executes a ga query, or returns cache if available
     gaExecuteQuery = function(args, callback, cache, retryCount){
         retryCount = retryCount || 0;
         concurrentUp();
-        googleapis.analytics('v3').data.ga.get(args, function(err, result) {
+
+        console.log(args);
+
+        var req = {
+            reportRequests: [{
+                viewId: args.viewId,
+                dateRanges: [{
+                    startDate: args.startDate,
+                    endDate: args.endDate,
+                }],
+                metrics: [{
+                    expression: args.metrics,
+                }],
+                orderBys:[
+                  {
+                    "fieldName": args.metrics, "sortOrder": "DESCENDING"
+                  }],
+                pageSize: args.pageSize,
+                samplingLevel: "LARGE",
+                dimensions: [{"name": args.dimensions}],
+                dimensionFilterClauses: args.filters
+            }]
+        };
+
+        googleapis.analyticsreporting('v4').reports.batchGet({
+            headers: {
+                "Content-Type": "application/json"
+            },
+            auth: args.auth,
+            resource: req 
+        }, function(err, result){
             concurrentDown();
             if(err) {
-                //  403 error: we probably just need to wait 1 sec...
+                //  403 error: wait 1 sec...
                 if(err.code === 403) {
                     setTimeout(function(){
                         if(retryCount < concurrentMaxRetry) {
@@ -51,7 +82,7 @@ var googleapis  = require('googleapis'),
             }
 
             //  Cache the response, if caching is on
-            if(cache ) {
+            if(cache) {
                 var fileName = getCacheFileName(args);
                 fs.writeFileSync(fileName, JSON.stringify(result), {encoding: "utf8"});
             }
@@ -59,7 +90,7 @@ var googleapis  = require('googleapis'),
             callback(null, result);
         });
     },
-    //  Concurrency limiting, GA default is 10 concurrent connections
+    //  Concurrent limiting, GA default is 10 concurrent connections
     concurrentLimit = 10,
     concurrentDelay = 1000,
     concurrentMaxRetry = 3,
@@ -84,9 +115,9 @@ var googleapis  = require('googleapis'),
         }
     },
 
-    // Caching is off by default - to enable 15 mins caching: cache = 15 * 1000 * 60;
-    cache = 0,
-    cacheDir = process.env.TMPDIR;
+    // Caching is off by default - to enable 15 mins caching: cache (in ms) = 15 * 1000 * 60; 1 hr cache = 1 * 1000 * 60 * 60;
+    cache = 24 * 1000 * 60 * 60,
+    cacheDir = process.env.CACHEDIR;
 
 module.exports = function(args, callback, settings){
     if(settings) {
@@ -131,8 +162,8 @@ module.exports = function(args, callback, settings){
             });
         };
 
-    //  Check we have required values
-    _.each(['ids', 'startDate', 'endDate', 'metrics'], function(value, key){
+    //  Check if we have required values
+    _.each(['viewId', 'startDate', 'endDate', 'metrics', 'dimensions', 'filters', 'pageSize'], function(value, key){
         if(!args[value]) {
             callback("Missing argument for " + value);
             return false;
@@ -149,19 +180,15 @@ module.exports = function(args, callback, settings){
                 refresh_token: result.refresh_token
             });
 
-            // https://developers.google.com/analytics/devguides/reporting/core/dimsmets
-            // https://developers.google.com/analytics/devguides/reporting/core/v3/coreDevguide
             var gaArgs = compactObject({
-                "ids": args.ids,
-                "start-date": args.startDate,
-                "end-date": args.endDate,
-                "metrics": args.metrics,
-                "filters": args.filters,
+                'viewId': args.viewId,
+                'startDate': args.startDate,
+                'endDate': args.endDate,
+                'metrics': args.metrics,
+                'filters': args.filters,
                 'dimensions': args.dimensions,
-                "max-results": args.maxResults,
-                "start-index": args.startIndex,
-                sort: args.sort,
-                auth: oauth2Client
+                'pageSize': args.pageSize,
+                'auth': oauth2Client
             });
 
             //  Load the cached response, if caching is on
