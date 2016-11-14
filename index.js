@@ -35,7 +35,6 @@ var googleapis = require('googleapis'),
         console.log(args);
 
         var req = {
-            quotaUser: args.quotaID,
             reportRequests: [{
                 viewId: args.viewId,
                 dateRanges: [{
@@ -57,6 +56,7 @@ var googleapis = require('googleapis'),
         };
 
         googleapis.analyticsreporting('v4').reports.batchGet({
+            quotaUser: args.quotaID,
             headers: {
                 "Content-Type": "application/json"
             },
