@@ -35,6 +35,7 @@ var googleapis = require('googleapis'),
         console.log(args);
 
         var req = {
+            quotaUser: args.quotaID,
             reportRequests: [{
                 viewId: args.viewId,
                 dateRanges: [{
@@ -117,7 +118,7 @@ var googleapis = require('googleapis'),
 
     // Caching is off by default - to enable 15 mins caching: cache (in ms) = 15 * 1000 * 60; 1 hr cache = 1 * 1000 * 60 * 60;
     cache = 24 * 1000 * 60 * 60,
-    cacheDir = process.env.CACHEDIR;
+    cacheDir = process.env.CACHEDIR || '/cached';
 
 module.exports = function(args, callback, settings){
     if(settings) {
@@ -163,7 +164,7 @@ module.exports = function(args, callback, settings){
         };
 
     //  Check if we have required values
-    _.each(['viewId', 'startDate', 'endDate', 'metrics', 'dimensions', 'filters', 'pageSize'], function(value, key){
+    _.each(['quotaID', 'viewId', 'startDate', 'endDate', 'metrics', 'dimensions', 'filters', 'pageSize'], function(value, key){
         if(!args[value]) {
             callback("Missing argument for " + value);
             return false;
@@ -181,6 +182,7 @@ module.exports = function(args, callback, settings){
             });
 
             var gaArgs = compactObject({
+                'quotaID': args.quotaID,
                 'viewId': args.viewId,
                 'startDate': args.startDate,
                 'endDate': args.endDate,
