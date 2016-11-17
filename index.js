@@ -82,9 +82,19 @@ var googleapis = require('googleapis'),
                 }
             }
 
+            //use only params to generate hash filename
+            var gaHash = compactObject({
+                'startDate': args.startDate,
+                'endDate': args.endDate,
+                'metrics': args.metrics,
+                'filters': args.filters,
+                'dimensions': args.dimensions,
+                'pageSize': args.pageSize
+            });
+
             //  Cache the response, if caching is on
             if(cache) {
-                var fileName = getCacheFileName(args);
+                var fileName = getCacheFileName(gaHash);
                 fs.writeFileSync(fileName, JSON.stringify(result), {encoding: "utf8"});
             }
 
@@ -164,7 +174,7 @@ module.exports = function(args, callback, settings){
         };
 
     //  Check if we have required values
-    _.each(['quotaID', 'viewId', 'startDate', 'endDate', 'metrics', 'dimensions', 'filters', 'pageSize'], function(value, key){
+    _.each(['startDate', 'endDate', 'metrics', 'dimensions', 'filters', 'pageSize'], function(value, key){
         if(!args[value]) {
             callback("Missing argument for " + value);
             return false;
@@ -193,9 +203,19 @@ module.exports = function(args, callback, settings){
                 'auth': oauth2Client
             });
 
+            //  Use only params to generate hash filename
+            var gaHash = compactObject({
+                'startDate': args.startDate,
+                'endDate': args.endDate,
+                'metrics': args.metrics,
+                'filters': args.filters,
+                'dimensions': args.dimensions,
+                'pageSize': args.pageSize
+            });
+
             //  Load the cached response, if caching is on
             if(cache) {
-                var fileName = getCacheFileName(gaArgs),
+                var fileName = getCacheFileName(gaHash),
                     stats;
 
                 fs.readFile(fileName, "utf8", function(err, data){
