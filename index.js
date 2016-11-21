@@ -150,7 +150,7 @@ module.exports = function(args, callback, settings){
             null,
             'postmessage'
         ),
-        sessionFile = cacheDir + "ga-runner-" + args.email.replace(/[^a-zA-Z\-]/gi, "_"),
+        sessionFile = cacheDir + "ga-runner-" + args.quotaID,
         authorize = function(authCallback) {
             fs.readFile(sessionFile, {encoding: "utf8"}, function(err, result) {
                 //  If the file was read successfully
