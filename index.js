@@ -32,7 +32,7 @@ var googleapis = require('googleapis'),
         retryCount = retryCount || 0;
         concurrentUp();
 
-        console.log(args);
+        //console.log(args);
 
         var req = {
             reportRequests: [{
@@ -222,9 +222,12 @@ module.exports = function(args, callback, settings){
                     if(!err) {
                         stats = fs.statSync(fileName);
                         if(stats.isFile() && (stats.birthtime >= ((new Date()).getTime() - cache))) {
+                            console.log('return cached file');
                             return callback(null, JSON.parse(data));
                         }
                     }
+
+                    console.log('get new file');
                     gaQuery(gaArgs, callback, cache);
                 });
             } else {
