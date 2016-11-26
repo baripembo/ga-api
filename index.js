@@ -86,17 +86,16 @@ var googleapis = require('googleapis'),
             var gaHash = compactObject({
                 'startDate': args.startDate,
                 'endDate': args.endDate,
+                'createdDate': args.createdDate,
                 'metrics': args.metrics,
                 'filters': args.filters,
                 'dimensions': args.dimensions,
                 'pageSize': args.pageSize
             });
 
-            //  Cache the response, if caching is on
-            if(cache) {
-                var fileName = getCacheFileName(gaHash);
-                fs.writeFileSync(fileName, JSON.stringify(result), {encoding: "utf8"});
-            }
+            //  Cache the response
+            var fileName = getCacheFileName(gaHash);
+            fs.writeFileSync(fileName, JSON.stringify(result), {encoding: "utf8"});
 
             callback(null, result);
         });
@@ -126,9 +125,8 @@ var googleapis = require('googleapis'),
         }
     },
 
-    // Caching is off by default - to enable 15 mins caching: cache (in ms) = 15 * 1000 * 60; 1 hr cache = 1 * 1000 * 60 * 60;
-    cache = 24 * 1000 * 60 * 60,
-    cacheDir = process.env.CACHEDIR || '/cached';
+    cacheDir = process.env.CACHEDIR || '/cached/';
+    tokenDir = cacheDir + process.env.TOKENDIR || '/tokens/';
 
 module.exports = function(args, callback, settings){
     if(settings) {
@@ -150,7 +148,7 @@ module.exports = function(args, callback, settings){
             null,
             'postmessage'
         ),
-        sessionFile = cacheDir + "ga-runner-" + args.quotaID,
+        sessionFile = tokenDir + "ga-runner-" + args.quotaID,
         authorize = function(authCallback) {
             fs.readFile(sessionFile, {encoding: "utf8"}, function(err, result) {
                 //  If the file was read successfully
@@ -196,6 +194,7 @@ module.exports = function(args, callback, settings){
                 'viewId': args.viewId,
                 'startDate': args.startDate,
                 'endDate': args.endDate,
+                'createdDate': args.createdDate,
                 'metrics': args.metrics,
                 'filters': args.filters,
                 'dimensions': args.dimensions,
@@ -207,32 +206,44 @@ module.exports = function(args, callback, settings){
             var gaHash = compactObject({
                 'startDate': args.startDate,
                 'endDate': args.endDate,
+                'createdDate': args.createdDate,
                 'metrics': args.metrics,
                 'filters': args.filters,
                 'dimensions': args.dimensions,
                 'pageSize': args.pageSize
             });
 
-            //  Load the cached response, if caching is on
-            if(cache) {
-                var fileName = getCacheFileName(gaHash),
-                    stats;
+            //  Get cached response or create one
+            var fileName = getCacheFileName(gaHash),
+                stats;
 
-                fs.readFile(fileName, "utf8", function(err, data){
-                    if(!err) {
-                        stats = fs.statSync(fileName);
-                        if(stats.isFile() && (stats.birthtime >= ((new Date()).getTime() - cache))) {
-                            console.log('return cached file');
-                            return callback(null, JSON.parse(data));
-                        }
+            fs.readFile(fileName, "utf8", function(err, data){
+                if(!err) {
+                    stats = fs.statSync(fileName);
+                    var now = new Date();
+                    var currMth = now.getMonth();
+                    var created = new Date(args.createdDate+'-02');
+                    var visited = new Date(args.endDate);
+                    var modified = new Date(stats.mtime);
+                    var isCurrent = false;
+
+                    //  Determine currency of cached file
+                    if (modified.getMonth()==currMth && modified.getDate()==now.getDate()){
+                        isCurrent = true;
+                    }
+                    else{
+                        isCurrent = (visited.getMonth()==currMth || created.getMonth()==currMth) ? false : true;
                     }
 
-                    console.log('get new file');
-                    gaQuery(gaArgs, callback, cache);
-                });
-            } else {
-                gaQuery(gaArgs, callback);
-            }
+                    //  Return cached file if current, otherwise update it
+                    if(stats.isFile() && isCurrent) {
+                        console.log('get cached file');
+                        return callback(null, JSON.parse(data));
+                    }
+                }
+                console.log('create new cached file');
+                gaQuery(gaArgs, callback, cache);
+            });
         }
     });
 };
