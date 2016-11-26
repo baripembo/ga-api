@@ -125,6 +125,7 @@ var googleapis = require('googleapis'),
         }
     },
 
+    cache = 0;
     cacheDir = process.env.CACHEDIR || '/cached/';
     tokenDir = cacheDir + process.env.TOKENDIR || '/tokens/';
 
